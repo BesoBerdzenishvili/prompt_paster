@@ -75,8 +75,17 @@ html[data-env="browser"] .app { backdrop-filter: blur(24px); }
 .folder { padding: 8px 10px 8px 10px; border-radius: 16px; background: linear-gradient(145deg, rgba(185,169,255,.2), rgba(255,255,255,.06)); }
 .folder .chev { display: grid; color: var(--text-2); transition: transform .25s var(--ease); } .folder.open .chev { transform: rotate(90deg); }
 .folder-ico { display: grid; color: var(--accent); }
-.folder-name { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.folder-name-input { flex: 1; min-width: 0; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--accent); background: rgba(0,0,0,.4); color: var(--text); outline: none; font-weight: 600; user-select: text; }
+.folder-name { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.folder-name-input { flex: none; min-width: 0; max-width: 100%; padding: 4px 9px; border-radius: 10px; border: 1px solid var(--accent); background: rgba(0,0,0,.42); color: var(--text); outline: none; font: 600 14px var(--font); user-select: text;
+  box-shadow: 0 0 0 3px rgba(185,169,255,.25); transition: width .38s var(--ease), box-shadow .3s, background .3s; }
+.folder-name-input.collapsing { box-shadow: 0 0 0 0 rgba(185,169,255,0); background: rgba(0,0,0,.2); transition-duration: .28s; }
+.folder.renaming { cursor: default; }
+.folder .count { flex: none; animation: pop .3s var(--ease); }
+@keyframes pop { from { opacity: 0; transform: scale(.7); } }
+/* folder hover actions: overlay on the right, hiding whatever is under them */
+.folder .item-actions { position: absolute; right: 6px; top: 50%; padding: 2px 2px 2px 26px; border-radius: 0 14px 14px 0;
+  background: linear-gradient(90deg, rgba(46,44,70,0), rgba(46,44,70,.97) 24px); transform: translate(8px, -50%); }
+.folder:hover .item-actions, .folder:focus-within .item-actions { transform: translate(0, -50%); }
 .count { font-size: 11.5px; color: var(--text-2); background: rgba(255,255,255,.12); border-radius: 999px; padding: 1px 8px; min-width: 22px; text-align: center; }
 .empty-folder { color: var(--text-3); font-size: 12px; padding: 2px 10px; }
 .grip { display: grid; color: var(--text-3); cursor: grab; margin-left: -4px; }

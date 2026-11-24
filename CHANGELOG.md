@@ -2,6 +2,12 @@
 
 Format: newest first. Every task bumps `version` in `src-tauri/tauri.conf.json` and adds an entry here.
 
+## 0.1.2 — 2026-11-24
+- Folder rename: the title input now starts at the title's width, animates (stretches) to the end of the folder item and animates back when editing ends.
+- Folder item: the title spans the whole row with the item-count pill at the far end; hover actions are an overlay that covers part of the title instead of squeezing it.
+- Pin: with the window pinned, pasting keeps the list open and gives focus back to the app/field you were typing in (Windows: tracked + restored via `SetForegroundWindow`; other OSes keep the list open but don't restore focus yet).
+- Variables box: height now fits all fields (it was measuring its own fixed window, so it never grew); capped at the screen height, after which the fields scroll.
+
 ## 0.1.1 — 2026-11-24
 - Fix: dev server returned "not found" on Windows (path handling), leaving the window empty in `tauri dev`.
 - Remove unused `EffectState` import warning on non-macOS targets.

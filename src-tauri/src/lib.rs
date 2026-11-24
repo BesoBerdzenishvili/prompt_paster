@@ -8,7 +8,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicIsize, Ordering},
         mpsc, Mutex,
     },
     thread,
@@ -61,10 +61,54 @@ struct AppState {
     hide_on_blur: AtomicBool,
     pinned: AtomicBool,
     suppress_blur: AtomicBool,
+    /// Last foreign (other app) foreground window – used to hand focus back after pasting while pinned.
+    prev_focus: AtomicIsize,
     /// Mouse position (physical px) captured when the hotkey fired – usually
     /// right where the user clicked into the target input field.
     anchor: Mutex<Option<(f64, f64)>>,
     shortcut_error: Mutex<Option<String>>,
+}
+
+// ───────────────────────── focus helpers ─────────────────────────
+
+/// Remember / restore the window the user was typing in (needed when the list stays open while pinned).
+#[cfg(target_os = "windows")]
+mod winfocus {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId, SetForegroundWindow};
+
+    /// Foreground window if it belongs to another process.
+    pub fn foreign_foreground() -> Option<isize> {
+        unsafe {
+            let h = GetForegroundWindow();
+            let raw = h as isize;
+            if raw == 0 {
+                return None;
+            }
+            let mut pid = 0u32;
+            GetWindowThreadProcessId(h, &mut pid);
+            if pid == std::process::id() { None } else { Some(raw) }
+        }
+    }
+
+    pub fn restore(raw: isize) {
+        unsafe {
+            SetForegroundWindow(raw as _);
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+mod winfocus {
+    pub fn foreign_foreground() -> Option<isize> {
+        None
+    }
+    pub fn restore(_raw: isize) {}
+}
+
+fn remember_foreground(app: &AppHandle) {
+    if let Some(h) = winfocus::foreign_foreground() {
+        app.state::<AppState>().prev_focus.store(h, Ordering::SeqCst);
+    }
 }
 
 // ───────────────────────── helpers ─────────────────────────
@@ -125,6 +169,7 @@ fn show_main(app: &AppHandle) {
             let _ = w.center();
         }
     }
+    remember_foreground(app);
     let _ = w.unminimize();
     let _ = w.show();
     let _ = w.set_focus();
@@ -157,7 +202,7 @@ fn hide_all(app: &AppHandle) {
 
 /// Puts the small variables box just below the remembered mouse anchor
 /// (flipping above it / clamping so it always stays on screen).
-fn place_vars(app: &AppHandle) {
+fn place_vars(app: &AppHandle, height_phys: Option<f64>) {
     let Some(v) = app.get_webview_window("vars") else { return };
     let anchor = *app.state::<AppState>().anchor.lock().unwrap();
     let anchor = anchor.or_else(|| app.cursor_position().ok().map(|c| (c.x, c.y)));
@@ -166,7 +211,7 @@ fn place_vars(app: &AppHandle) {
         return;
     };
     let scale = v.scale_factor().unwrap_or(1.0);
-    let (w, h) = (size.width as f64, size.height as f64);
+    let (w, h) = (size.width as f64, height_phys.unwrap_or(size.height as f64));
     let gap = 20.0 * scale;
     let mut x = ax - 24.0 * scale;
     let mut y = ay + gap;
@@ -203,11 +248,15 @@ fn press_paste() -> Result<(), String> {
     clicked
 }
 
-fn do_paste(app: &AppHandle, text: &str, restore: bool) -> Result<(), String> {
+fn do_paste(app: &AppHandle, text: &str, restore: bool, refocus: Option<isize>) -> Result<(), String> {
     let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
     let previous = if restore { clipboard.get_text().ok() } else { None };
     clipboard.set_text(text.to_string()).map_err(|e| e.to_string())?;
 
+    // Pinned: the list stays open, so explicitly give focus back to the app the user was typing in.
+    if let Some(h) = refocus {
+        winfocus::restore(h);
+    }
     // Give the OS a moment to hand focus back to the previously active window.
     thread::sleep(Duration::from_millis(160));
 
@@ -354,9 +403,21 @@ fn resume_shortcut(app: AppHandle, state: State<'_, AppState>) {
 
 #[tauri::command]
 async fn paste_text(app: AppHandle, text: String, restore: bool, prompt_id: Option<String>) -> Result<(), String> {
-    hide_all(&app);
+    let (pinned, prev) = {
+        let st = app.state::<AppState>();
+        (st.pinned.load(Ordering::SeqCst), st.prev_focus.load(Ordering::SeqCst))
+    };
+    if pinned {
+        // Keep the main list open; only the small variables box goes away.
+        if let Some(v) = app.get_webview_window("vars") {
+            let _ = v.hide();
+        }
+    } else {
+        hide_all(&app);
+    }
+    let refocus = if pinned && prev != 0 { Some(prev) } else { None };
     let handle = app.clone();
-    tauri::async_runtime::spawn_blocking(move || do_paste(&handle, &text, restore))
+    tauri::async_runtime::spawn_blocking(move || do_paste(&handle, &text, restore, refocus))
         .await
         .map_err(|e| e.to_string())??;
     if let Some(id) = prompt_id {
@@ -368,8 +429,10 @@ async fn paste_text(app: AppHandle, text: String, restore: bool, prompt_id: Opti
 /// Step 1 of the variables flow: hide the list and hand the data to the small box.
 #[tauri::command]
 fn show_vars(app: AppHandle, payload: serde_json::Value) -> Result<(), String> {
-    if let Some(m) = app.get_webview_window("main") {
-        let _ = m.hide();
+    if !app.state::<AppState>().pinned.load(Ordering::SeqCst) {
+        if let Some(m) = app.get_webview_window("main") {
+            let _ = m.hide();
+        }
     }
     app.emit_to("vars", "vars:open", payload).map_err(|e| e.to_string())
 }
@@ -377,12 +440,19 @@ fn show_vars(app: AppHandle, payload: serde_json::Value) -> Result<(), String> {
 /// Step 2: the box measured itself – resize, place near the input and show it.
 #[tauri::command]
 fn present_vars(app: AppHandle, height: f64) {
-    if let Some(v) = app.get_webview_window("vars") {
-        let _ = v.set_size(LogicalSize::new(340.0, height.clamp(120.0, 600.0)));
-        place_vars(&app);
-        let _ = v.show();
-        let _ = v.set_focus();
-    }
+    let Some(v) = app.get_webview_window("vars") else { return };
+    let scale = v.scale_factor().unwrap_or(1.0);
+    let anchor = *app.state::<AppState>().anchor.lock().unwrap();
+    let monitor = anchor
+        .and_then(|(x, y)| monitor_at(&v, x, y))
+        .or_else(|| v.current_monitor().ok().flatten());
+    // As tall as the content needs, but never taller than the screen (the list scrolls then).
+    let max_h = monitor.map(|m| m.size().height as f64 / scale - 48.0).unwrap_or(700.0).max(160.0);
+    let h = height.clamp(120.0, max_h);
+    let _ = v.set_size(LogicalSize::new(340.0, h));
+    place_vars(&app, Some(h * scale));
+    let _ = v.show();
+    let _ = v.set_focus();
 }
 
 #[tauri::command]
@@ -462,7 +532,11 @@ pub fn run() {
                 api.prevent_close();
                 let _ = window.hide();
             }
-            WindowEvent::Focused(false) if window.label() == "main" => {
+            WindowEvent::Focused(false) if window.label() == "main" || window.label() == "vars" => {
+                remember_foreground(window.app_handle());
+                if window.label() != "main" {
+                    return;
+                }
                 let st = window.app_handle().state::<AppState>();
                 if st.hide_on_blur.load(Ordering::SeqCst)
                     && !st.pinned.load(Ordering::SeqCst)
@@ -492,6 +566,7 @@ pub fn run() {
                 hide_on_blur: AtomicBool::new(true),
                 pinned: AtomicBool::new(false),
                 suppress_blur: AtomicBool::new(false),
+                prev_focus: AtomicIsize::new(0),
                 anchor: Mutex::new(None),
                 shortcut_error: Mutex::new(shortcut_error),
             });
