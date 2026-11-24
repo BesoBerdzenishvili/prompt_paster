@@ -460,6 +460,14 @@ fn hide_windows(app: AppHandle) {
     hide_all(&app);
 }
 
+/// Closes only the small variables box (the X button); a pinned main list stays open.
+#[tauri::command]
+fn hide_vars(app: AppHandle) {
+    if let Some(v) = app.get_webview_window("vars") {
+        let _ = v.hide();
+    }
+}
+
 #[tauri::command]
 fn set_behavior(state: State<'_, AppState>, hide_on_blur: bool) {
     state.hide_on_blur.store(hide_on_blur, Ordering::SeqCst);
@@ -615,6 +623,7 @@ pub fn run() {
             show_vars,
             present_vars,
             hide_windows,
+            hide_vars,
             set_behavior,
             set_pinned,
             set_autostart,

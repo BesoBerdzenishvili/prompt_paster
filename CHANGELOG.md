@@ -2,6 +2,11 @@
 
 Format: newest first. Every task bumps `version` in `src-tauri/tauri.conf.json` and adds an entry here.
 
+## 0.1.3 — 2026-11-24
+- Variables box: now resizable (window edges + a corner grip; min 280×140) and can be dragged from its whole header to anywhere on screen (the drag attribute is now on every header element, so clicks on the icon/title no longer block dragging).
+- Variables box: new ✕ button at the end of the header closes only that box (a pinned list stays open); new `hide_vars` command.
+- Title subtitle now uses the available width instead of a fixed 240 px.
+
 ## 0.1.2 — 2026-11-24
 - Folder rename: the title input now starts at the title's width, animates (stretches) to the end of the folder item and animates back when editing ends.
 - Folder item: the title spans the whole row with the item-count pill at the far end; hover actions are an overlay that covers part of the title instead of squeezing it.
