@@ -5,6 +5,7 @@
 
 **Header buttons**
 1. **Add prompt** (prompt-style icon, else plus). Modal: title, textarea (body to paste), optional category and platform. Curly braces define variables: `tell me about {random topic}`. When such a prompt is chosen, before pasting a small box appears at the input field listing all variable names with input fields next to them; first field focused; **Tab** moves to the next; **Enter** pastes. Empty variables stay in original `{name}` form.
+   - **Platform filter (v0.2.0, optional setting):** the Platform field is a keyword (comma/semicolon-separated for several). When the list is opened over an app whose window title or process name contains a prompt's platform, only matching prompts are listed (plus prompts without a platform, unless the sub-toggle is off). A bar "Claude prompts only · Show all" lets the user override per opening. Windows only for now.
 2. **Folder** button adds a folder; name editable at any time. Folders may be nested arbitrarily deep, or not used at all.
 3. **Sort** button → popup:
    - order by name, creation date, modify date, size, or other useful field;

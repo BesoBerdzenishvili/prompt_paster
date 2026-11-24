@@ -146,3 +146,10 @@ html[data-env="browser"] .app { backdrop-filter: blur(24px); }
 
 @media (max-width: 330px) { .toolbar .icon-btn { width: 34px; height: 34px; } }
 @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+
+/* "Showing Claude prompts · Show all" bar (platform filter) */
+.platform-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 14px 8px; padding: 3px 6px 3px 12px; border-radius: 999px; background: rgba(185,169,255,.14); border: 1px solid rgba(185,169,255,.3); color: var(--text-2); font-size: 12px; }
+.platform-bar[hidden] { display: none; }
+.platform-bar span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.platform-bar b { color: var(--accent); font-weight: 600; }
+.set-row.disabled { opacity: .45; pointer-events: none; }

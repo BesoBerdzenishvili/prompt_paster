@@ -11,6 +11,7 @@ import { confirmDialog } from './ui/modal.js';
 import { closeTopLayer, hasLayers, pushLayer } from './ui/layers.js';
 import { toast } from './ui/toast.js';
 import { extractVars, fillVars } from './lib/vars.js';
+import { detectPlatform } from './lib/platform.js';
 
 hydrateIcons();
 
@@ -102,6 +103,18 @@ $('#btn-import').onclick = async () => {
   } catch (e) { toast(e.message || String(e), 'error'); }
 };
 
+// ── platform filter bar ────────────────────────────────
+function renderPlatformBar(settings) {
+  const el = $('#platform-bar');
+  const name = settings ? null : detectPlatform(state);
+  el.hidden = !name;
+  if (!name) return;
+  const all = !!state.ui.platformShowAll;
+  el.replaceChildren(
+    h('span', {}, all ? 'Showing all prompts' : [h('b', {}, name), ' prompts only']),
+    h('button', { class: 'link', type: 'button', onclick: () => { state.ui.platformShowAll = !all; touchUi(); } }, all ? `Filter to ${name}` : 'Show all'));
+}
+
 // ── render ─────────────────────────────────────────────
 function render() {
   const settings = state.ui.page === 'settings';
@@ -110,6 +123,7 @@ function render() {
   $('#search-adv').checked = !!state.view.advanced;
   $('#btn-sort').classList.toggle('filtered', state.view.mode === 'category' && state.view.categoryFilter.length > 0);
   renderTabs();
+  renderPlatformBar(settings);
   if (!settings) renderList();
   if (isSortOpen()) refreshSortPopup();
 }
@@ -142,10 +156,13 @@ document.addEventListener('keydown', (e) => {
 
 // ── lifecycle ──────────────────────────────────────────
 listen('prompt:used', (e) => recordUse(e.payload));
-listen('window:shown', () => {
+listen('window:shown', (e) => {
+  // Payload = the app that was in the foreground when the shortcut fired: { title, process } (Windows only).
+  state.ui.foreground = e.payload || null; state.ui.platformShowAll = false;
   closeTopLayer(); while (hasLayers() && closeTopLayer());
   if (state.ui.page === 'settings') closeSettings();
   if (state.ui.search || bar.classList.contains('open')) closeSearch();
+  touchUi();
   $('#body').scrollTop = 0;
   (document.activeElement)?.blur?.();
 });

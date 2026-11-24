@@ -66,6 +66,13 @@ export function renderSettings() {
     oninput: (e) => { setPref('glassOpacity', e.target.value / 100, { quiet: true }); applyTint(state.prefs); valueEl.textContent = `${e.target.value}%`; } });
   const valueEl = h('span', { class: 'val' }, `${Math.round(state.prefs.glassOpacity * 100)}%`);
 
+  const keepGeneric = row('Also show prompts without a platform', 'Off = only prompts whose platform matches the app.', toggle('platformKeepGeneric', () => touchUi()));
+  const syncKeepGeneric = (on) => { keepGeneric.classList.toggle('disabled', !on); keepGeneric.querySelector('input').disabled = !on; };
+  const platformRow = row('Filter by the app you’re in',
+    `When you open the list over an app whose window title or name contains a prompt’s Platform (e.g. “Claude”), show only those prompts.${d.os === 'windows' ? '' : ' Currently works on Windows only.'}`,
+    toggle('platformFilter', (on) => { syncKeepGeneric(on); touchUi(); }));
+  syncKeepGeneric(!!state.prefs.platformFilter);
+
   root.replaceChildren(
     h('div', { class: 'page-head' },
       h('button', { class: 'icon-btn', type: 'button', title: 'Back', html: icon('back', 18), onclick: closeSettings }),
@@ -78,7 +85,8 @@ export function renderSettings() {
         d.shortcutError && h('p', { class: 'warn' }, d.shortcutError)),
       h('section', { class: 'card glass' },
         h('div', { class: 'card-title' }, 'List'),
-        row('Expand all prompts', 'Show up to 3 lines of each prompt’s text.', toggle('expandAll', () => touchUi()))),
+        row('Expand all prompts', 'Show up to 3 lines of each prompt’s text.', toggle('expandAll', () => touchUi())),
+        platformRow, keepGeneric),
       h('section', { class: 'card glass' },
         h('div', { class: 'card-title' }, 'Appearance'),
         row('Desktop blur', 'See your blurred desktop through the window. Turn off if dragging feels laggy.', toggle('glassBlur', () => applyTheme(state.prefs))),

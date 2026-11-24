@@ -69,12 +69,25 @@ struct AppState {
     shortcut_error: Mutex<Option<String>>,
 }
 
+/// The app that was in the foreground when the list was opened. Sent with `window:shown` so the UI can
+/// filter prompts by their Platform field (title = window title, process = executable name without ".exe").
+#[derive(Serialize, Clone, Default)]
+struct ForegroundApp {
+    title: String,
+    process: String,
+}
+
 // ───────────────────────── focus helpers ─────────────────────────
 
 /// Remember / restore the window the user was typing in (needed when the list stays open while pinned).
 #[cfg(target_os = "windows")]
 mod winfocus {
-    use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId, SetForegroundWindow};
+    use super::ForegroundApp;
+    use windows_sys::Win32::Foundation::{CloseHandle, HWND};
+    use windows_sys::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        GetForegroundWindow, GetWindowTextW, GetWindowThreadProcessId, SetForegroundWindow,
+    };
 
     /// Foreground window if it belongs to another process.
     pub fn foreign_foreground() -> Option<isize> {
@@ -95,6 +108,36 @@ mod winfocus {
             SetForegroundWindow(raw as _);
         }
     }
+
+    /// Window title + executable name of a window (empty strings when unavailable, e.g. elevated processes).
+    pub fn describe(raw: isize) -> ForegroundApp {
+        unsafe {
+            let hwnd: HWND = raw as _;
+            let mut buf = [0u16; 512];
+            let n = GetWindowTextW(hwnd, buf.as_mut_ptr(), buf.len() as i32);
+            let title = if n > 0 { String::from_utf16_lossy(&buf[..n as usize]) } else { String::new() };
+
+            let mut pid = 0u32;
+            GetWindowThreadProcessId(hwnd, &mut pid);
+            let mut process = String::new();
+            if pid != 0 {
+                let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+                if handle as usize != 0 {
+                    let mut pbuf = [0u16; 1024];
+                    let mut len = pbuf.len() as u32;
+                    if QueryFullProcessImageNameW(handle, 0, pbuf.as_mut_ptr(), &mut len) != 0 {
+                        let path = String::from_utf16_lossy(&pbuf[..len as usize]);
+                        process = std::path::Path::new(&path)
+                            .file_stem()
+                            .map(|s| s.to_string_lossy().to_string())
+                            .unwrap_or_default();
+                    }
+                    CloseHandle(handle);
+                }
+            }
+            ForegroundApp { title, process }
+        }
+    }
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -103,12 +146,15 @@ mod winfocus {
         None
     }
     pub fn restore(_raw: isize) {}
+    pub fn describe(_raw: isize) -> super::ForegroundApp {
+        super::ForegroundApp::default()
+    }
 }
 
-fn remember_foreground(app: &AppHandle) {
-    if let Some(h) = winfocus::foreign_foreground() {
-        app.state::<AppState>().prev_focus.store(h, Ordering::SeqCst);
-    }
+fn remember_foreground(app: &AppHandle) -> Option<isize> {
+    let h = winfocus::foreign_foreground()?;
+    app.state::<AppState>().prev_focus.store(h, Ordering::SeqCst);
+    Some(h)
 }
 
 // ───────────────────────── helpers ─────────────────────────
@@ -169,11 +215,12 @@ fn show_main(app: &AppHandle) {
             let _ = w.center();
         }
     }
-    remember_foreground(app);
+    // Which app were we opened over? (empty when unknown, e.g. opened from the tray)
+    let fg = remember_foreground(app).map(winfocus::describe).unwrap_or_default();
     let _ = w.unminimize();
     let _ = w.show();
     let _ = w.set_focus();
-    let _ = app.emit_to("main", "window:shown", ());
+    let _ = app.emit_to("main", "window:shown", fg);
 }
 
 fn toggle_main(app: &AppHandle) {

@@ -8,6 +8,8 @@ export const DEFAULT_PREFS = {
   glassOpacity: 0.62,
   restoreClipboard: true,
   autoExport: false,
+  platformFilter: false,       // when opened over an app whose window matches a prompt's Platform, list only those prompts
+  platformKeepGeneric: true,   // …and keep prompts that have no platform
 };
 
 export const DEFAULT_VIEW = {

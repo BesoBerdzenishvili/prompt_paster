@@ -2,6 +2,16 @@
 
 Format: newest first. Every task bumps `version` in `src-tauri/tauri.conf.json` and adds an entry here.
 
+## 0.2.0 — 2026-11-24
+- New: platform filter (Settings → List, off by default). When the list opens over an app whose window title or executable name contains a prompt's **Platform** (case-insensitive, e.g. "Claude"), only matching prompts are shown. Sub-toggle "Also show prompts without a platform" (on by default). If no prompt matches the app, everything is shown.
+- A "<Platform> prompts only · Show all" bar lets you override the filter for the current opening.
+- Platform field accepts several keywords separated by `,` or `;`.
+- Backend: `window:shown` now carries `{title, process}` of the previously focused window (Windows; empty elsewhere). `windows-sys` gets the `Win32_System_Threading` feature.
+- Tests: `tests/platform.test.js`.
+
+## 0.1.4 — 2026-11-24
+- Fix: variables box footer (hint + Paste button) is now pinned to the bottom of the window (`margin-top: auto`), instead of sitting right under the fields when the window is taller than its content.
+
 ## 0.1.3 — 2026-11-24
 - Variables box: now resizable (window edges + a corner grip; min 280×140) and can be dragged from its whole header to anywhere on screen (the drag attribute is now on every header element, so clicks on the icon/title no longer block dragging).
 - Variables box: new ✕ button at the end of the header closes only that box (a pinned list stays open); new `hide_vars` command.

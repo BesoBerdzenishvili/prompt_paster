@@ -1,4 +1,5 @@
 // Filtering, sorting and tree building. Pure module – covered by tests/sort.test.js.
+import { platformFilterActive, passesPlatform } from './platform.js';
 export const SORT_FIELDS = [
   { id: 'name', label: 'Name' },
   { id: 'created', label: 'Created' },
@@ -50,7 +51,7 @@ export function matchesSearch(p, query, advanced) {
 }
 
 export function isFiltering(state) {
-  return !!state.ui.search.trim() || (state.view.mode === 'category' && state.view.categoryFilter.length > 0);
+  return !!state.ui.search.trim() || (state.view.mode === 'category' && state.view.categoryFilter.length > 0) || platformFilterActive(state);
 }
 
 /** Set of prompt ids passing search + category filter. */
@@ -58,8 +59,10 @@ export function passingIds(state) {
   const { view, ui } = state;
   const cats = view.mode === 'category' ? view.categoryFilter : [];
   const ids = new Set();
+  const byPlatform = platformFilterActive(state);
   for (const p of state.prompts) {
     if (!matchesSearch(p, ui.search, view.advanced)) continue;
+    if (byPlatform && !passesPlatform(p, state)) continue;
     if (cats.length && !(cats.includes(p.category) || (!p.category && cats.includes(NO_CATEGORY)))) continue;
     ids.add(p.id);
   }

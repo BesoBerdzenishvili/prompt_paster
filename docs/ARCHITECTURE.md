@@ -36,10 +36,10 @@ prompt-paster/
 
 ## Backend commands (src-tauri/src/lib.rs)
 `get_device`, `load_data`, `save_data(json, autoExport)`, `export_data(json, choose)`, `import_data`, `set_shortcut`, `pause_shortcut`/`resume_shortcut` (while recording a new shortcut), `paste_text(text, restore, promptId)`, `show_vars(payload)`, `present_vars(height)`, `hide_windows`, `hide_vars`, `set_behavior(hideOnBlur)`, `set_pinned`, `set_autostart`, `apply_glass(enabled)`, `quit_app`.
-Events: backend→main `window:shown`, `prompt:used`; backend→vars `vars:open`.
+Events: backend→main `window:shown` (payload `{title, process}` = foreground app at open time, Windows only; drives the platform filter in `lib/platform.js`), `prompt:used`; backend→vars `vars:open`.
 
 ## Flows
-**Open:** global shortcut → `toggle_main` → remember mouse position (anchor) → centre window on that monitor → show + focus → `window:shown` (UI resets search/settings).
+**Open:** global shortcut → `toggle_main` → remember mouse position (anchor) → centre window on that monitor → show + focus → `window:shown` (UI resets search/settings, stores the foreground app, applies the optional platform filter).
 **Paste (no variables):** click → `recordUse` → `flush` → `paste_text`: hide windows → save clipboard text → set clipboard → wait 160 ms (OS returns focus) → simulate Ctrl/Cmd+V on the main thread (enigo) → wait 400 ms → restore clipboard.
 **Paste (variables):** click → `show_vars` (hides main, emits `vars:open`) → vars window renders, measures itself, calls `present_vars(height)` → Rust sizes + places it under the anchor → user fills → Enter → `paste_text(filled, restore, promptId)` → backend emits `prompt:used` to main (usage is recorded there).
 **Pinned paste:** with the pin on, `paste_text` hides only the variables box, then (Windows) calls `SetForegroundWindow` on the last foreign window (`prev_focus`, recorded on show and whenever our windows lose focus) before sending Ctrl+V. Other platforms keep the list open without refocusing.
