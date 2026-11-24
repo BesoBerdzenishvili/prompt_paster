@@ -3,9 +3,14 @@ html, body { background: transparent; }
 .vbox { position: fixed; inset: 0; display: flex; flex-direction: column; gap: 12px; padding: 14px; overflow: hidden; border-radius: var(--win-radius, 0);
   background: linear-gradient(150deg, rgba(60,56,90,.95), rgba(26,28,36,.96)); border: 1px solid var(--stroke-2); box-shadow: inset 0 1px 0 rgba(255,255,255,.22); }
 html[data-os="macos"] .vbox { border-radius: 18px; } html[data-os="linux"] .vbox { border-radius: 16px; }
-.vhead { display: flex; align-items: center; gap: 10px; }
+.vhead { display: flex; align-items: center; gap: 10px; cursor: grab; user-select: none; }
+.vtext { flex: 1; min-width: 0; }
+.vclose { flex: none; margin-left: auto; cursor: pointer; }
+.vgrip { position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px; cursor: nwse-resize; opacity: .55;
+  background: linear-gradient(135deg, transparent 50%, var(--text-3) 50%, var(--text-3) 58%, transparent 58%, transparent 70%, var(--text-3) 70%, var(--text-3) 78%, transparent 78%); }
+.vgrip:hover { opacity: 1; }
 .vico { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: rgba(185,169,255,.22); border: 1px solid rgba(185,169,255,.5); color: var(--accent); flex: none; }
-.vtitle { font-weight: 600; font-size: 14px; } .vsub { font-size: 12px; color: var(--text-2); max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vtitle { font-weight: 600; font-size: 14px; } .vsub { font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vrows { display: flex; flex-direction: column; gap: 8px; flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 1px; margin: -1px; }
 .vhead, .vfoot { flex: none; }
 .vrow { display: grid; grid-template-columns: minmax(70px, 38%) 1fr; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; border-radius: 14px; background: rgba(255,255,255,.1); border: 1px solid var(--stroke); }
@@ -14,6 +19,6 @@ html[data-os="macos"] .vbox { border-radius: 18px; } html[data-os="linux"] .vbox
 .vrow input { min-width: 0; height: 32px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--stroke); background: rgba(0,0,0,.35); color: var(--text); outline: none; user-select: text; }
 .vrow input::placeholder { color: var(--text-3); font-size: 11.5px; }
 .vrow input:focus { border-color: var(--accent); }
-.vfoot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vfoot { display: flex; align-items: center; justify-content: space-between; gap: 8px;margin-top: auto; }
 .vhint { font-size: 11px; color: var(--text-3); display: flex; align-items: center; gap: 3px; white-space: nowrap; } .vhint kbd { font-size: 10px; padding: 1px 5px; }
 .vbtn { height: 32px; padding: 0 18px; border-radius: 999px; border: 0; background: #f6f7f9; color: #14161b; font-weight: 600; } .vbtn:hover { background: #fff; }
