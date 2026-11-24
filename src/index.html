@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prompt Paster</title>
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="titlebar" data-tauri-drag-region>
+      <div class="brand" data-tauri-drag-region>
+        <div class="logo" data-tauri-drag-region><span data-icon="logo" data-size="20"></span></div>
+        <div class="brand-text" data-tauri-drag-region>
+          <h1 data-tauri-drag-region>Prompts</h1>
+          <p data-tauri-drag-region>Press <span id="hint-keys"></span> anywhere</p>
+        </div>
+      </div>
+      <div class="win-actions">
+        <button class="icon-btn" id="btn-pin" title="Keep window open (pin)"><span data-icon="pin" data-size="16"></span></button>
+        <button class="icon-btn" id="btn-close" title="Hide (Esc)"><span data-icon="x" data-size="17"></span></button>
+      </div>
+    </header>
+
+    <div class="toolbar-wrap" id="toolbar-wrap">
+      <div class="toolbar glass" id="toolbar">
+        <button class="icon-btn primary" id="btn-add" title="New prompt"><span data-icon="prompt" data-size="20"></span></button>
+        <button class="icon-btn" id="btn-folder" title="New folder"><span data-icon="folderPlus"></span></button>
+        <button class="icon-btn" id="btn-sort" title="Sort &amp; filter"><span data-icon="sort"></span></button>
+        <button class="icon-btn" id="btn-search" title="Search"><span data-icon="search"></span></button>
+        <span class="sep"></span>
+        <button class="icon-btn" id="btn-import" title="Import .json"><span data-icon="import"></span></button>
+        <button class="icon-btn hold" id="btn-export" title="Export .json (hold to choose a new location)"><span data-icon="export"></span></button>
+        <button class="icon-btn" id="btn-settings" title="Settings"><span data-icon="settings"></span></button>
+      </div>
+      <div class="searchbar glass-strong" id="searchbar">
+        <span class="s-ico" data-icon="search" data-size="18"></span>
+        <input id="search-input" type="text" placeholder="Search prompts…" autocomplete="off" spellcheck="false" />
+        <label class="adv" title="Also search inside the prompt text"><input type="checkbox" id="search-adv" /><span class="box"></span>Body</label>
+        <button class="icon-btn sm" id="search-close" title="Close search"><span data-icon="x" data-size="16"></span></button>
+      </div>
+    </div>
+
+    <nav class="tabs glass" id="tabs">
+      <span class="indicator"></span>
+      <button data-tab="main">Main</button>
+      <button data-tab="favs">Favs</button>
+      <button data-tab="recent">Recent</button>
+    </nav>
+
+    <main class="body" id="body"><div id="list" class="list"></div></main>
+    <section class="settings-page" id="settings" hidden></section>
+
+    <div id="popover-root"></div>
+    <div id="modal-root"></div>
+    <div id="toast-root"></div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "prompt-paster",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "serve": "node scripts/dev-server.mjs",
+    "test": "node --test tests/*.test.js",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
