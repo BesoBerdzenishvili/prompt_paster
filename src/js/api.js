@@ -14,6 +14,7 @@ const mock = {
   async import_data() { return window.__mockImport ?? null; },
   async set_shortcut({ shortcut }) { this.device.shortcut = shortcut; return shortcut; },
   async paste_text(a) { console.log('[mock] paste', a); window.__lastPaste = a; if (a.promptId) (mockHandlers['prompt:used'] || []).forEach((f) => f({ payload: a.promptId })); },
+  async present_vars(a) { window.__lastPresent = a.height; },
   async show_vars(a) { console.log('[mock] vars', a); window.__lastVars = a.payload; },
 };
 

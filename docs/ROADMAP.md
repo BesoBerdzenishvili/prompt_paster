@@ -8,6 +8,7 @@ The first version was written in an environment **without network access**, so:
 First thing to do on a real machine: `npm install && npm run dev`, then walk through docs/SPEC.md.
 
 ## Known limitations
+- Pinned-paste focus restore is implemented for Windows only (macOS/Linux: list stays open, focus not handed back).
 - Variables box is placed at the mouse position from when the hotkey fired, not at the real text caret (no portable caret API).
 - No Wayland support for global shortcut/paste; no blur on Linux.
 - Free-mode drag & drop uses HTML5 DnD (mouse only, no touch/keyboard reordering).

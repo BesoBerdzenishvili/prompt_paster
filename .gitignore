@@ -1,9 +1,9 @@
 node_modules/
-package-lock.json
 src-tauri/target/
 src-tauri/gen/
 dist/
 *.log
 .DS_Store
 .zipignore
+package-lock.json
 zipper.bat

@@ -48,7 +48,7 @@ export function renderList() {
   }
   $('#body').scrollTop = scroll;
   const rename = $('.folder-name-input', root);
-  if (rename) { rename.focus(); rename.select(); }
+  if (rename) { rename.focus(); rename.select(); stretchRename(rename); }
 }
 
 function emptyState() {
@@ -86,28 +86,58 @@ function itemRow(p, free, showPath) {
   return el;
 }
 
+let measureCtx;
+/** Width in px of `text` in the folder-title font (used to animate the rename field from/to the text width). */
+function textWidth(text, el) {
+  measureCtx ||= document.createElement('canvas').getContext('2d');
+  measureCtx.font = el ? getComputedStyle(el).font : `600 14px ${getComputedStyle(document.body).fontFamily}`;
+  return Math.ceil(measureCtx.measureText(text || ' ').width);
+}
+const RENAME_PAD = 20; // input padding + border
+
+/** Stretch the rename input from the title's width to the end of the folder item. */
+function stretchRename(input) {
+  const row = input.closest('.folder');
+  if (!row) return;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const target = row.getBoundingClientRect().right - input.getBoundingClientRect().left - 12;
+    input.style.width = `${Math.max(target, 80)}px`;
+  }));
+}
+
 function folderRow(n, depth, open, free) {
   const f = n.folder;
   const renaming = state.ui.renamingFolder === f.id;
-  const finish = (save, input) => renameFolder(f.id, save ? input.value : f.name);
+  let finishing = false;
+  const startRename = () => { state.ui.renamingFolder = f.id; renderList(); };
+  // Collapse the input back to the text width, then commit (which re-renders the plain title).
+  const finish = (save, input) => {
+    if (finishing) return;
+    finishing = true;
+    const value = save && input.value.trim() ? input.value.trim() : f.name;
+    input.style.width = `${textWidth(value, input) + RENAME_PAD}px`;
+    input.classList.add('collapsing');
+    setTimeout(() => renameFolder(f.id, value), 300);
+  };
   const nameEl = renaming
-    ? h('input', { class: 'folder-name-input', value: f.name, maxLength: 80,
+    ? h('input', { class: 'folder-name-input', value: f.name, maxLength: 80, style: `width:${textWidth(f.name) + RENAME_PAD}px`,
         onclick: (e) => e.stopPropagation(),
         onkeydown: (e) => { e.stopPropagation(); if (e.key === 'Enter') finish(true, e.target); if (e.key === 'Escape') finish(false, e.target); },
-        onblur: (e) => { if (state.ui.renamingFolder === f.id) finish(true, e.target); } })
-    : h('span', { class: 'folder-name', ondblclick: (e) => { e.stopPropagation(); state.ui.renamingFolder = f.id; renderList(); } }, f.name);
-  const el = h('div', { class: `folder ${open ? 'open' : ''}`, tabIndex: 0, dataset: { kind: 'folder', id: f.id }, draggable: free && !renaming,
+        onblur: (e) => finish(true, e.target) })
+    : h('span', { class: 'folder-name', title: f.name, ondblclick: (e) => { e.stopPropagation(); startRename(); } }, f.name);
+  const el = h('div', { class: `folder ${open ? 'open' : ''} ${renaming ? 'renaming' : ''}`, tabIndex: 0, dataset: { kind: 'folder', id: f.id }, draggable: free && !renaming,
     onclick: (e) => { if (!e.target.closest('.item-actions') && !renaming) toggleExpanded(f.id); },
     onkeydown: (e) => { if (e.key === 'Enter' && e.target === el) toggleExpanded(f.id); } },
     free && h('span', { class: 'grip', html: icon('grip', 16) }),
     h('span', { class: 'chev', html: icon('chevron', 16) }),
     h('span', { class: 'folder-ico', html: icon('folder', 18) }),
     nameEl,
-    h('span', { class: 'count' }, String(n.count)),
-    h('div', { class: 'item-actions' },
+    !renaming && h('span', { class: 'count' }, String(n.count)),
+    // Overlay on hover (does not take layout space, so the title stays fully visible otherwise).
+    !renaming && h('div', { class: 'item-actions' },
       iconBtn('prompt', 'New prompt here', () => openPromptModal({ folderId: f.id })),
       iconBtn('folderPlus', 'New subfolder', () => addFolder(f.id)),
-      iconBtn('edit', 'Rename', () => { state.ui.renamingFolder = f.id; renderList(); }),
+      iconBtn('edit', 'Rename', startRename),
       iconBtn('trash', 'Delete folder', () => askDeleteFolder(n), 'danger')));
   el.style.setProperty('--depth', depth);
   if (free) wireDnd(el, { kind: 'folder', id: f.id }, true);
