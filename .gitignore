@@ -7,3 +7,4 @@ dist/
 .zipignore
 package-lock.json
 zipper.bat
+test
